@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Link Hub - Modul Praktikum</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f4f6f9; color: #1f2937; }
+    header { background: #b91c1c; color: #fff; padding: 24px 16px; text-align: center; }
+    header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    header p { margin: 0; opacity: .9; }
+    main { max-width: 860px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 20px; }
+    h2 { margin-top: 0; font-size: 1.15rem; }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    form .full { grid-column: 1 / -1; }
+    label { font-size: .85rem; font-weight: 600; display: block; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: .95rem; }
+    button { cursor: pointer; border: none; border-radius: 6px; padding: 10px 16px; font-size: .95rem; }
+    .btn-primary { background: #b91c1c; color: #fff; }
+    .btn-primary:hover { background: #991b1b; }
+    .btn-delete { background: #fee2e2; color: #b91c1c; padding: 6px 12px; }
+    .btn-delete:hover { background: #fecaca; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
+    .toolbar select { width: auto; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; }
+    li:last-child { border-bottom: none; }
+    li a { color: #1d4ed8; font-weight: 600; text-decoration: none; word-break: break-word; }
+    li a:hover { text-decoration: underline; }
+    .meta { font-size: .8rem; color: #6b7280; margin-top: 3px; }
+    .badge { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 999px; padding: 1px 8px; font-size: .75rem; margin-right: 6px; }
+    .empty { color: #6b7280; text-align: center; padding: 16px 0; }
+    #status { font-size: .85rem; margin-top: 10px; min-height: 1.2em; }
+    .ok { color: #15803d; } .err { color: #b91c1c; }
+    @media (max-width: 600px) { form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Resource Link Hub</h1>
+    <p>Portal tautan modul, slide, dan materi praktikum</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Tambah Link Baru</h2>
+      <form id="linkForm">
+        <div class="full">
+          <label for="title">Judul Materi</label>
+          <input id="title" placeholder="contoh: Modul 3 - Docker Compose" required>
+        </div>
+        <div>
+          <label for="url">URL</label>
+          <input id="url" type="url" placeholder="https://..." required>
+        </div>
+        <div>
+          <label for="category">Kategori</label>
+          <select id="category">
+            <option>Modul</option>
+            <option>Slide</option>
+            <option>Video</option>
+            <option>Referensi</option>
+            <option>Lainnya</option>
+          </select>
+        </div>
+        <div class="full">
+          <button type="submit" class="btn-primary">+ Tambah Link</button>
+        </div>
+      </form>
+      <div id="status"></div>
+    </section>
+
+    <section class="card">
+      <div class="toolbar">
+        <h2 style="margin:0">Daftar Link Materi (<span id="count">0</span>)</h2>
+        <select id="filter">
+          <option value="">Semua kategori</option>
+          <option>Modul</option>
+          <option>Slide</option>
+          <option>Video</option>
+          <option>Referensi</option>
+          <option>Lainnya</option>
+        </select>
+      </div>
+      <ul id="linkList"><li class="empty">Memuat data...</li></ul>
+    </section>
+  </main>
+
+  <script>
+    // Request ke /api/... akan diteruskan Nginx ke service "backend" (lihat nginx.conf)
+    const API = "/api/links";
+    const listEl = document.getElementById("linkList");
+    const countEl = document.getElementById("count");
+    const statusEl = document.getElementById("status");
+    const filterEl = document.getElementById("filter");
+    let allLinks = [];
+
+    function showStatus(msg, ok = true) {
+      statusEl.textContent = msg;
+      statusEl.className = ok ? "ok" : "err";
+      setTimeout(() => { statusEl.textContent = ""; }, 3000);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function render() {
+      const f = filterEl.value;
+      countEl.textContent = allLinks.length;
+      // simpan index asli supaya DELETE /links?index=X tetap benar walau sedang difilter
+      const items = allLinks.map((l, i) => ({ ...l, index: i })).filter(l => !f || l.category === f);
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<li class="empty">Belum ada link.</li>';
+        return;
+      }
+      listEl.innerHTML = items.map(l => `
+        <li>
+          <div>
+            <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.title)}</a>
+            <div class="meta"><span class="badge">${escapeHtml(l.category)}</span>${escapeHtml(l.created_at || "")}</div>
+          </div>
+          <button class="btn-delete" onclick="deleteLink(${l.index})">Hapus</button>
+        </li>`).join("");
+    }
+
+    async function loadLinks() {
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const json = await res.json();
+        allLinks = json.data || [];
+        render();
+      } catch (err) {
+        listEl.innerHTML = '<li class="empty err">Gagal terhubung ke backend.</li>';
+        console.error(err);
+      }
+    }
+
+    document.getElementById("linkForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        title: document.getElementById("title").value,
+        url: document.getElementById("url").value,
+        category: document.getElementById("category").value,
+      };
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (!res.ok) return showStatus(json.error || "Gagal menambah link", false);
+        e.target.reset();
+        showStatus(json.message);
+        loadLinks();
+      } catch (err) {
+        showStatus("Gagal terhubung ke backend", false);
+      }
+    });
+
+    async function deleteLink(index) {
+      if (!confirm("Hapus link ini?")) return;
+      try {
+        const res = await fetch(`${API}?index=${index}`, { method: "DELETE" });
+        const json = await res.json();
+        if (!res.ok) return showStatus(json.error || "Gagal menghapus", false);
+        showStatus(json.message);
+        loadLinks();
+      } catch (err) {
+        showStatus("Gagal terhubung ke backend", false);
+      }
+    }
+
+    filterEl.addEventListener("change", render);
+    loadLinks();
+  </script>
+</body>
+</html>
