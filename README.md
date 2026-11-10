@@ -8,9 +8,8 @@ UTS Cloud Computing – Cloud-Native Fullstack Application & Automated CI/CD Pip
 | No | Nama | NIM |
 |----|------|-----|
 | 1 | Ahmad Naufal Romadhon | 101012300081 |
-| 2 | ... | ... |
-| 3 | ... | ... |
-| 4 | ... | ... |
+| 2 | Alexander Maximiliano Sirait | 101012300323 |
+| 3 | Gabriel Nathan Noel | 101012300382 |
 
 ## Deskripsi
 
