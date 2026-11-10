@@ -62,7 +62,7 @@ pipeline {
                 sh '''
                     # Cek API lewat Nginx -> service "backend" (sekaligus membuktikan DNS Docker di app-net)
                     for i in $(seq 1 10); do
-                        if docker exec ${FRONTEND_CONTAINER} wget -qO- http://localhost/api/health; then
+                        if docker exec ${FRONTEND_CONTAINER} wget -qO- http://127.0.0.1/api/health; then
                             echo ""
                             echo "Health check API OK (percobaan ke-$i)"
                             break
@@ -77,11 +77,11 @@ pipeline {
                     done
 
                     # Cek halaman frontend dari Bind Mount benar-benar tersaji
-                    docker exec ${FRONTEND_CONTAINER} wget -qO- http://localhost/ | grep -q "Resource Link Hub" \
+                    docker exec ${FRONTEND_CONTAINER} wget -qO- http://127.0.0.1/ | grep -q "Resource Link Hub" \
                         && echo "Frontend (Bind Mount) OK" \
                         || { echo "Frontend tidak tersaji dari Bind Mount"; exit 1; }
 
-                    docker exec ${FRONTEND_CONTAINER} wget -qO- http://localhost/api/links
+                    docker exec ${FRONTEND_CONTAINER} wget -qO- http://127.0.0.1/api/links
                     echo ""
                 '''
             }
