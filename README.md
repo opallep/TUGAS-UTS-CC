@@ -144,5 +144,5 @@ Lingkungan yang dipakai: Docker Desktop (Windows), Jenkins berjalan sebagai kont
 
 ## Video Demo
 
-Link video: `<isi link YouTube/Drive>`
+Link video: [Tonton video demo](https://drive.google.com/file/d/1fvc41uzV4HtnneD3b2cOrskwNW45XHWt/view?usp=sharing)
 
