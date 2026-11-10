@@ -15,13 +15,14 @@ Hanya memakai standard library Python (tanpa framework).
 import json
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 DATA_DIR = os.environ.get("DATA_DIR", "/var/lib/backend_data")
 DATA_FILE = os.path.join(DATA_DIR, "links.json")
 PORT = int(os.environ.get("PORT", "5000"))
+WIB = timezone(timedelta(hours=7))  # waktu Indonesia Barat
 
 lock = threading.Lock()
 
@@ -102,7 +103,7 @@ class Handler(BaseHTTPRequestHandler):
             "title": title,
             "url": url,
             "category": category,
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": datetime.now(WIB).strftime("%Y-%m-%d %H:%M:%S"),
         }
         with lock:
             links = load_links()
